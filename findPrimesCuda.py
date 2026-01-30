@@ -7,34 +7,50 @@ import math
 
 device = "cuda"
 
-# for me max 2_000_000_000 only 4GB vRam
-N = 5_000_000
+N = 1_000_000
+START = 200_000
 outfile = "primes.txt"
 
-# --- CUDA szita ---
-is_prime = torch.ones(N + 1, dtype=torch.bool, device=device)
-is_prime[0:2] = False
+# Number of odd values from 3 to N
+size = (N - 1) // 2
+is_prime = torch.ones(size, dtype=torch.bool, device=device)
 
 torch.cuda.synchronize()
 t0 = time.time()
 
-for i in range(2, int(math.sqrt(N)) + 1):
+limit = int(math.sqrt(N))
+
+for i in range((limit - 1) // 2 + 1):
     if is_prime[i]:
-        is_prime[i*i:N+1:i] = False
+        p = 2 * i + 3
+        start = (p * p - 3) // 2
+        is_prime[start::p] = False
 
 torch.cuda.synchronize()
 t1 = time.time()
 
-# --- Prímek kigyűjtése ---
-primes_gpu = torch.nonzero(is_prime).flatten()
-primes_cpu = primes_gpu.cpu().numpy()   # GPU -> CPU
+# --- Convert indices back to prime numbers ---
+indices = torch.nonzero(is_prime).flatten()
+primes_gpu = 2 * indices + 3
 
-print("Prímek száma:", len(primes_cpu))
-print("Számítási idő (GPU):", round(t1 - t0, 3), "s")
+# Add 2 separately
+primes_gpu = torch.cat((
+    torch.tensor([2], device=device),
+    primes_gpu
+))
 
-# --- Kiírás fájlba ---
+# Filter from START upwards
+primes_gpu = primes_gpu[primes_gpu >= START]
+primes_cpu = primes_gpu.cpu().numpy()
+
+print(f"Prime number computation completed for range {START}–{N}.")
+print("Number of primes:", len(primes_cpu))
+print("Computation time (GPU):", round(t1 - t0, 3), "s")
+
+# --- Write primes to file ---
 with open(outfile, "w", encoding="utf-8") as f:
     for p in primes_cpu:
         f.write(f"{p}\n")
 
-print(f"Kész! Kiírva ide: {outfile}")
+print(f"Done! Output written to: {outfile}")
+
