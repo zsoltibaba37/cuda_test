@@ -13,7 +13,7 @@ Done! Output written to: primes.txt
 ```
 ---
 
-###New version 
+### New version 
 
 <p>
 What this version does (quick recap)<br><br>
