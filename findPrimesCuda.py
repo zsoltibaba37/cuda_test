@@ -7,7 +7,7 @@ import math
 
 device = "cuda"
 
-N = 1_000_000
+N = 1_000_000_000
 START = 200_000
 outfile = "primes.txt"
 

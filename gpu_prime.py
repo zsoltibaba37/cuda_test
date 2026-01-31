@@ -1,28 +1,33 @@
+#!/usr/bin/env python3
+# coding: utf-8
+
+import torch
 import time
-import cupy as cp
 import math
 
-N = 500_000_000
+device = "cuda"
 
+N = 1_000_000_000
+
+torch.cuda.synchronize()
 start_total = time.perf_counter()
 
-# GPU-n egy bool tömb: True = potenciálisan prím
-is_prime = cp.ones(N + 1, dtype=cp.bool_)
+# Teljes boolean tömb 0..N
+is_prime = torch.ones(N + 1, dtype=torch.bool, device=device)
 is_prime[0:2] = False
 
 limit = int(math.isqrt(N))
 
 for p in range(2, limit + 1):
-    if bool(is_prime[p]):  # ezt a bool-t visszahozza CPU-ra
+    if is_prime[p]:  # CUDA-n marad, nem húzza vissza CPU-ra
         start_idx = p * p
         is_prime[start_idx:N+1:p] = False
 
 # prímek indexei
-primes_gpu = cp.nonzero(is_prime)[0]
+primes_gpu = torch.nonzero(is_prime).flatten()
 
-cp.cuda.Stream.null.synchronize()
+torch.cuda.synchronize()
 end_total = time.perf_counter()
 
-print(f"Prímek száma (GPU): {int(primes_gpu.size)}")
+print(f"Prímek száma (GPU): {primes_gpu.numel()}")
 print(f"Idő (GPU, teljes): {end_total - start_total:.4f} s")
-
